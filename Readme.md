@@ -1,10 +1,22 @@
-# Kit othello
+# Othello Kit
 
-Kit para executar partidas de Othello e implementar o algoritmo de poda alfa-beta.
+A kit for running Othello matches and implementing the alpha-beta pruning algorithm.
 
-## Conteudo
+## Table of contents
 
-O kit contém os seguintes arquivos (todos os `__init__.py` estao omitidos):
+- [Contents](#contents)
+- [Requirements](#requirements)
+- [Quick start](#quick-start)
+- [Usage](#usage)
+- [How it works](#how-it-works)
+- [Board representation](#board-representation)
+- [Coordinate system](#coordinate-system)
+- [Testing your agent](#testing-your-agent)
+- [Notes](#notes)
+
+## Contents
+
+The kit contains the following files (all `__init__.py` files are omitted):
 
 ```text
 kit_othello
@@ -12,79 +24,89 @@ kit_othello
 |   |-- othello
 |   |   \-- board.py
 |   |-- randomplayer
-|   |   \-- agent.py       <-- agente que joga aleatoriamente
-|   |-- timer.py           <-- funcoes auxiliares de temporizacao
-|   \-- your_agent         <-- renomeie este diretorio c/ o nome do seu agente (pode adicionar outros arquivos aqui se precisar)
-|       |-- agent.py       <-- preencha o make_move aqui
+|   |   \-- agent.py       <-- agent that plays randomly
+|   |-- timer.py           <-- timing helper functions
+|   \-- your_agent         <-- rename this directory to your agent's name (you may add other files here if needed)
+|       |-- agent.py       <-- implement make_move here
 |-- server.py
-\-- test_agent.py          <-- teste o funcionamento basico do seu agente (pode adicionar outros casos de teste)
+\-- test_agent.py          <-- test your agent's basic behavior (you may add other test cases)
 ```
 
-## Requisitos
+## Requirements
 
-O servidor foi testado em uma máquina GNU/Linux com o interpretador python 3.7.
+- Python 3.7+ (the server was developed and tested on GNU/Linux with Python 3.7; other interpreter versions and operating systems may work but are untested)
 
-Outras versões do interpretador python ou sistema operacional podem funcionar, mas não foram testados.
+No third-party packages are required — the kit only uses the standard library.
 
-## Instruções
+## Quick start
 
-Para iniciar uma partida de Othello, digite no terminal:
+1. Rename `advsearch/your_agent` to a name of your choosing (e.g. `advsearch/my_agent`).
+2. Implement `make_move(board, color)` in that directory's `agent.py`.
+3. Run a match against the random player to confirm everything works:
 
-`python server.py [-h] [-d delay] [-p pace] [-o output-file] [-l log-history] advsearch.player1 advsearch.player2`
+   ```bash
+   python server.py advsearch.randomplayer advsearch.randomplayer -d 1 -p 0.3
+   ```
 
-Onde 'player(1 ou 2)' são os diretórios dentro de `advsearch` onde estão implementados os módulos dos jogadores (dentro do arquivo agent).
+   A delay of 1 second is enough because the random player is very fast (and very incompetent). The pace of 0.3 seconds keeps the match easy to follow in the terminal — speed it up or slow it down as needed.
 
-Os argumentos entre colchetes são opcionais, seu significado é descrito a seguir:
+## Usage
 
-```text
--h, --help            Mensagem de ajuda
--d delay, --delay delay
-                    Tempo alocado para os jogadores realizarem a jogada (default=5s)
--p pace, --pace pace
-                    Tempo mínimo que o servidor espera para processar a jogada (para poder ver partidas muito
-                    rapidas sem se perder no terminal)
--l log-history, --log-history log-history
-                    Arquivo para o log do jogo (default=history.txt)
--o output-file, --output-file output-file
-                    Arquivo de saida com os detalhes do jogo (inclui historico)
+```bash
+python server.py [-h] [-d delay] [-p pace] [-o output-file] [-l log-history] player1 player2
 ```
 
-O jogador 'random' se localiza no diretório `advsearch/randomplayer`. Para jogar uma partida com ele,
-basta substituir player1 ou 2 por randomplayer. Como exemplo, inicie
-uma partida random vs. random para ver o servidor funcionando:
+`player1` and `player2` are the dotted module paths (relative to `advsearch`) of the directories where each player's `agent.py` lives, e.g. `advsearch.randomplayer` or `advsearch.my_agent`.
 
-`python server.py advsearch.randomplayer advsearch.randomplayer -d 1 -p 0.3`
+| Flag | Description | Default |
+| --- | --- | --- |
+| `-h`, `--help` | Show the help message | — |
+| `-d delay`, `--delay delay` | Time (seconds) allotted for a player to make a move | `5.0` |
+| `-p pace`, `--pace pace` | Minimum time (seconds) the server waits before showing the next move, so fast matches remain easy to follow | `0` |
+| `-l log-history`, `--log-history log-history` | Plain-text file where the move log is written | `history.txt` |
+| `-o output-file`, `--output-file output-file` | XML file with full match details (includes the move history) | `results.xml` |
 
-O delay pode ser de 1 segundo porque o jogador random é muito rápido (e muito incompetente). O passo é de 0.3 segundos para acompanhar o progresso da partida (pode acelerar ou reduzir conforme a necessidade).
+The `random` player is located at `advsearch/randomplayer`. To play against it, use `advsearch.randomplayer` as either `player1` or `player2`.
 
-## Funcionamento
+## How it works
 
-Iniciando pelo primeiro jogador, que jogará com as peças pretas, o servidor chama a função `make_move(board, color)` do seu `agent.py`. A função recebe `board`, um objeto da classe `Board` e `color`, um caractere indicando a cor com a qual a jogada deve ser feita (‘B’ para as pretas ou ‘W’ para as brancas). Veja no `othello/board.py`.
+Starting with the first player, who plays the black pieces, the server calls `make_move(board, color)` from your `agent.py`:
 
-O servidor então espera o delay e recebe a tupla (x,y) com coluna e linha com a jogada do jogador. O servidor processa a jogada, exibe o novo estado no terminal e passa a vez pro oponente, repetindo esse ciclo até o fim do jogo.
+- `board` — a `Board` object (see `advsearch/othello/board.py`) with the current game state.
+- `color` — a character indicating which color should move (`'B'` for black, `'W'` for white).
 
-No fim do jogo, o servidor exibe a pontuação de cada jogador e cria um arquivo history.txt
-com todas as jogadas tentadas pelos jogadores (inclusive as ilegais).
+The server waits up to `delay` seconds and expects the `(x, y)` tuple returned by `make_move`, where `x` is the column and `y` is the row. It then processes the move, prints the new board state, and passes the turn to the opponent — repeating this cycle until the game ends.
 
-Em um objeto da classe `Board`, o atributo `tiles` contém a representação do tabuleiro como uma matriz de caracteres (ou lista de strings ;). `W` representa uma peça branca (white), `B` uma peça preta (black) e `.` (ponto) representa um espaço livre. No exemplo a seguir, temos a representação do estado inicial de Othello.
+A player who fails to return a move in time, or returns an illegal move, five times in a row is disqualified.
+
+At the end of the game, the server prints each player's score and writes:
+
+- the history file (default `history.txt`) with every move attempted, including illegal ones;
+- the output file (default `results.xml`) with full match details, such as timing, results, and move history.
+
+## Board representation
+
+A `Board` object's `tiles` attribute holds the board as a list of strings (one per row). `W` represents a white piece, `B` a black piece, and `.` an empty space. Below is the initial state of an Othello game:
 
 ```text
 [
-“........”,
-“........”,
-“........”,
-“...WB...”,
-“...BW...”,
-“........”,
-“........”,
-“........”,
+"........",
+"........",
+"........",
+"...WB...",
+"...BW...",
+"........",
+"........",
+"........",
 ]
 ```
 
-O eixo x cresce da esquerda para a direita e o eixo y cresce de cima para baixo. O exemplo a seguir mostra o sistema de coordenadas para o estado inicial.
+## Coordinate system
+
+The x-axis grows left to right, and the y-axis grows top to bottom:
 
 ```text
-  01234567 --> eixo x
+  01234567 --> x axis
 0 ........
 1 ........
 2 ........
@@ -96,14 +118,24 @@ O eixo x cresce da esquerda para a direita e o eixo y cresce de cima para baixo.
 |
 |
 v
-eixo y
+y axis
 ```
 
-IMPORTANTE: cuidado com o sistema de coordenadas vs a indexação de matrizes. Sua função make_move deve retornar as coordenadas x, y (coluna, linha) enquanto a representação de matriz endereça primeiramente a linha e depois a coluna.
+> **Important:** don't confuse the coordinate system with matrix indexing. `make_move` must return `(x, y)` — column, then row — while `tiles` is indexed row-first, then column (`tiles[y][x]`).
 
-## Notas
+## Testing your agent
 
-- O servidor checa a legalidade das jogadas antes de efetivá-las.
-- Jogadas ilegais resultam em desqualificação.
-- O jogador 'random' apenas sorteia uma jogada entre as válidas no estado recebido.
-- Em caso de problemas com o servidor, reporte via moodle ou email.
+`test_agent.py` includes a couple of sanity checks for your agent (edit the import at the top of the file to point to your renamed agent module, then run):
+
+```bash
+python -m unittest test_agent.py
+```
+
+Feel free to add more test cases as you develop your algorithm.
+
+## Notes
+
+- The server checks the legality of every move before applying it.
+- Illegal or missed (timed-out) moves count against a player; five in a row result in disqualification.
+- The `random` player simply picks a random move from the ones that are valid in the current state.
+- If you run into problems with the server, report them via Moodle or email.
